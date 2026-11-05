@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: mega-telegram-tracker
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: mega-tracker-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_PATH
+        value: /var/data/mega-tracker.sqlite
+      - key: ALLOWED_ORIGIN
+        value: https://gouravchouhan28.github.io
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false
+      - key: TELEGRAM_CHANNEL_ID
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: META_PIXEL_ID
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_GRAPH_VERSION
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false

@@ -1,0 +1,66 @@
+<!--
+Add the Meta Pixel base code in your existing page <head>.
+Replace YOUR_PIXEL_ID and YOUR_RENDER_SERVICE_URL.
+Change your current Telegram CTA to:
+<button id="telegramJoin">Join Telegram</button>
+-->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','YOUR_PIXEL_ID');
+fbq('track','PageView');
+</script>
+
+<script>
+(() => {
+  const API = 'YOUR_RENDER_SERVICE_URL'; // e.g. https://mega-telegram-tracker.onrender.com
+
+  function cookie(name) {
+    const match = document.cookie.match(
+      new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)')
+    );
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  const button = document.getElementById('telegramJoin');
+  if (!button) return;
+
+  button.addEventListener('click', async () => {
+    if (button.dataset.busy === '1') return;
+    button.dataset.busy = '1';
+    button.disabled = true;
+
+    try {
+      if (typeof window.fbq === 'function') fbq('trackCustom', 'TelegramClick');
+
+      const q = new URLSearchParams(location.search);
+      const response = await fetch(`${API}/api/telegram-link`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          fbp: cookie('_fbp'),
+          fbc: cookie('_fbc'),
+          fbclid: q.get('fbclid'),
+          page_url: location.href,
+          utm_source: q.get('utm_source'),
+          utm_campaign: q.get('utm_campaign'),
+          utm_adset: q.get('utm_adset'),
+          utm_ad: q.get('utm_ad')
+        })
+      });
+      if (!response.ok) throw new Error('Tracking server unavailable');
+      const data = await response.json();
+      if (!data.url || !data.url.startsWith('https://t.me/')) throw new Error('Invalid Telegram link');
+      location.href = data.url;
+    } catch (err) {
+      console.error(err);
+      alert('Telegram is temporarily unavailable. Please try again.');
+      button.disabled = false;
+      button.dataset.busy = '0';
+    }
+  });
+})();
+</script>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MEGA Tracking Dashboard</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#10131b;color:#f4f6fb}
+body{margin:0;padding:24px;max-width:1100px;margin:auto}
+h1{font-size:25px;margin:0 0 6px}.muted{color:#aab3c5}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:22px 0}
+.card{background:#1b2230;border:1px solid #303b50;border-radius:14px;padding:16px}
+.value{font-size:30px;font-weight:700;margin-top:8px}
+table{width:100%;border-collapse:collapse;margin-top:12px;background:#1b2230;border-radius:12px;overflow:hidden}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #303b50;font-size:13px}
+th{color:#b9c5d9}button{padding:10px 14px;border:0;border-radius:9px;background:#3478f6;color:white;font-weight:600}
+.wrap{overflow:auto}.status{margin:14px 0;color:#aab3c5}
+</style>
+</head>
+<body>
+<h1>MEGA Tracking Dashboard</h1>
+<div class="muted">Private Telegram channel attribution · Live database totals</div>
+<p><button id="refresh">Refresh report</button></p>
+<div id="status" class="status">Sign in to load your report.</div>
+<div class="grid" id="cards"></div>
+<h2>Campaign / Ad report</h2>
+<div class="wrap"><table>
+<thead><tr><th>Campaign</th><th>Ad set</th><th>Ad</th><th>Clicks</th><th>Bot starts</th><th>Verified joins</th></tr></thead>
+<tbody id="rows"><tr><td colspan="6">No data loaded</td></tr></tbody>
+</table></div>
+<script>
+let auth = sessionStorage.getItem("megaAdminAuth");
+async function load(){
+  if(!auth){
+    const u=prompt("Dashboard username");
+    if(u===null)return;
+    const p=prompt("Dashboard password");
+    if(p===null)return;
+    auth="Basic "+btoa(u+":"+p);
+  }
+  document.getElementById("status").textContent="Loading…";
+  try{
+    const r=await fetch("/admin/api/stats",{headers:{Authorization:auth}});
+    if(r.status===401){sessionStorage.removeItem("megaAdminAuth");auth=null;throw new Error("Login failed. Refresh and try again.");}
+    if(!r.ok)throw new Error("Could not load dashboard.");
+    sessionStorage.setItem("megaAdminAuth",auth);
+    const d=await r.json();
+    const labels=[["Landing clicks",d.counts.landingClicks],["Bot starts",d.counts.botStarts],["Verified joins",d.counts.verifiedJoins],["Meta events sent",d.counts.sentMeta],["Meta events pending",d.counts.pendingMeta]];
+    document.getElementById("cards").innerHTML=labels.map(([k,v])=>`<div class="card"><div class="muted">${k}</div><div class="value">${Number(v).toLocaleString()}</div></div>`).join("");
+    document.getElementById("rows").innerHTML=d.campaigns.length?d.campaigns.map(x=>`<tr><td>${esc(x.campaign)}</td><td>${esc(x.adset)}</td><td>${esc(x.ad)}</td><td>${x.clicks}</td><td>${x.bot_starts}</td><td>${x.joins}</td></tr>`).join(""):'<tr><td colspan="6">No campaign data yet</td></tr>';
+    document.getElementById("status").textContent="Updated "+new Date().toLocaleString();
+  }catch(e){document.getElementById("status").textContent=e.message;}
+}
+function esc(v){return String(v??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+document.getElementById("refresh").addEventListener("click",load);
+load();
+</script>
+</body>
+</html>
